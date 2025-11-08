@@ -1,14 +1,152 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>تسجيل الدخول / تفعيل الجهاز</title>
+    <title>تفعيل الكود - منصة 1383</title>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script>
-        // 🚨 لازم تحط الـ Configuration بتاعت مشروعك هنا يا سو
+    
+    <style>
+        /* تعريف المتغيرات والألوان */
+        :root {
+            --black-bg: #1A1A2E; 
+            --darker-bg: #0F0F1B; 
+            --yellow-card: #FFD700; 
+            --light-text: #FFFFFF;
+            --gray-text: #A0A0B0;
+            --accent: #00f5c4; 
+            --error: #ff4f4f;
+            --warning: #f39c12;
+            --success-color: #00f5c4; /* لون النجاح */
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: linear-gradient(135deg, var(--darker-bg), var(--black-bg));
+            color: var(--light-text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h2 {
+            color: var(--yellow-card);
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 2px solid var(--gray-text);
+            border-radius: 8px;
+            background-color: var(--darker-bg);
+            color: var(--light-text);
+            font-size: 16px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--success-color);
+            outline: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--success-color);
+            color: var(--darker-bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .btn:hover {
+            background: #00e0b3;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #444;
+            color: var(--gray-text);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #statusMessage {
+            margin-top: 15px;
+            font-weight: 600;
+            min-height: 20px;
+            color: var(--gray-text);
+        }
+        
+        /* ====== رسالة التنبيه (Toast) ====== */
+        #auth-toast {
+            position: fixed; 
+            bottom: 20px; /* ظهر التوست تحت عشان ميغطيش على الفورم */
+            right: 20px; 
+            padding: 10px 20px;
+            border-radius: 12px; 
+            font-family: 'Tajawal', sans-serif;
+            z-index: 9999; 
+            font-weight: 600; 
+            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5); 
+            color: #fff; 
+            opacity: 0;
+            min-width: 200px; 
+            text-align: center;
+            transform: translateY(20px);
+        }
+        
+        #auth-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="auth-toast"></div> <div class="container">
+        <h2>تفعيل كود المنصة</h2>
+        <form id="activationForm">
+            <input type="text" id="code" placeholder="أدخل كود التفعيل هنا" required />
+            <button type="submit" class="btn" id="activateBtn">تفعيل الكود</button>
+        </form>
+        <div id="statusMessage"></div>
+    </div>
+    
+    <button onclick="downloadAdminTest()" style="display:none;">تحميل كود activation.html كامل</button>
+
+<script>
+    // 🚨 Configuration - استخدمي نفس إعدادات مشروعك
         const firebaseConfig = {
           apiKey: "AIzaSyBK6FZF3LW83qaUHBKYTfiVd2Ozrd1Rf2g",
           authDomain: "thanawy-1383.firebaseapp.com",
@@ -19,167 +157,204 @@
           appId: "1:1026664406457:web:87d71f7e41bef36ba0aa68",
           measurementId: "G-J5R2EFM2D0"
         };
+    if (typeof firebase === 'undefined' || firebase.apps.length === 0) {
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-        body { font-family: 'Cairo', sans-serif; background: #1a1a2e; color: #fff; text-align: center; padding: 20px; }
-        .container { max-width: 450px; margin: 50px auto; background: #22253f; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
-        h1 { color: #00f5c4; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 8px; box-sizing: border-box; background: #333652; color: #fff; font-size: 16px; text-align: center; }
-        button { width: 100%; padding: 15px; background: #00f5c4; color: #1a1a2e; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
-        button:hover { background: #00c8a3; }
-        .status { margin-top: 15px; font-weight: 700; color: #ffb347; }
-        #uidDisplay { font-size: 14px; color: #a0a0b0; margin-bottom: 20px; word-break: break-all; }
-        .admin-link { display: block; margin-top: 30px; color: #ffb347; text-decoration: none; font-size: 14px; }
-        .divider { margin: 25px 0; border-bottom: 1px dashed #333652; padding-bottom: 10px; color: #a0a0b0; font-weight: 700; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🔑 تسجيل الدخول بكود التفعيل</h1>
+    }
+    const db = firebase.database();
+    
+    // 🔗 رابط إعادة التوجيه لصفحة الموقع الأساسي
+    const MAIN_SITE_URL = 'index.html'; 
+    const statusMessage = document.getElementById('statusMessage');
+
+    // =======================================================
+    // 💡 دالة التنبيه (Toast)
+    // =======================================================
+    function showToast(message, type = "info") {
+        const toast = document.getElementById("auth-toast");
         
-        <form id="loginForm">
-            <input type="text" id="activationCode" placeholder="أدخل كود التفعيل (9 أرقام)" pattern="[0-9]{9}" maxlength="9" required />
-            <button type="submit" id="submitBtn">تسجيل الدخول</button>
-            <div class="status" id="statusMessage"></div>
-        </form>
+        let bgColor = "#3498db"; 
+        if (type === "error") bgColor = "#e74c3c"; 
+        else if (type === "success") bgColor = "#2ecc71"; 
+        else if (type === "warning") bgColor = "#f39c12";
 
-        <div class="divider">أو</div>
+        toast.textContent = message;
+        toast.style.background = bgColor;
+        toast.classList.add("show");
 
-        <h2>✉️ طلب تفعيل جهاز جديد</h2>
-        <p id="uidDisplay">معرف جهازك: جارِ التحميل...</p>
-        <form id="registrationForm">
-            <input type="text" id="name" placeholder="الاسم ثلاثي" required />
-            <input type="tel" id="phone" placeholder="رقم الهاتف (للتواصل)" required />
-            <button type="submit" id="requestBtn">إرسال طلب التفعيل</button>
-            <div class="status" id="requestStatusMessage"></div>
-        </form>
-    </div>
-
-    <script>
-        const loginForm = document.getElementById('loginForm');
-        const registrationForm = document.getElementById('registrationForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const requestBtn = document.getElementById('requestBtn');
-        const statusMessage = document.getElementById('statusMessage');
-        const requestStatusMessage = document.getElementById('requestStatusMessage');
-        const uidDisplay = document.getElementById('uidDisplay');
-
-        // 1. توليد أو جلب الـ UID
-        let deviceUid = localStorage.getItem('localUid');
-        if (!deviceUid) {
-            // توليد UID بسيط إذا لم يكن موجودًا
-            deviceUid = 'device-' + Date.now() + Math.floor(Math.random() * 999);
-            localStorage.setItem('localUid', deviceUid);
-        }
-        uidDisplay.textContent = 'معرف جهازك: ' + deviceUid;
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(() => {
+            toast.classList.remove("show");
+        }, 4000); 
+    }
+    
+    // =======================================================
+    // 🛡️ دالة التحقق الثنائي الهادئة (تشتغل أول ما الصفحة تحمل)
+    // =======================================================
+    async function checkCodeStatusOnLoad() {
+        const activationCode = localStorage.getItem('activationCode');
         
-        // لو الطالب معاه كود، بنحاول نتحقق منه فوراً عشان ندخله
-        const storedCode = localStorage.getItem('activationCode');
-        if (storedCode && localStorage.getItem('approved') === 'true') {
-             // إعادة توجيه سريعة إذا كان الكود موجود ومعتمد محليًا
-             window.location.href = 'https://1383ss.vercel.app';
+        // 1. 🔍 التحقق المحلي الأولي
+        if (!activationCode) {
+            statusMessage.textContent = 'برجاء إدخال كود التفعيل لتنشيط جهازك.';
+            statusMessage.style.color = 'var(--gray-text)';
+            return { status: 'no_local_code' };
         }
+        
+        // 2. 🛡️ التحقق من Firebase
+        statusMessage.textContent = '⏳ جاري التحقق من حالة الكود المحفوظ...';
+        statusMessage.style.color = 'var(--warning)';
+        
+        try {
+            const snapshot = await db.ref('approvedStudents/' + activationCode).once('value');
+            const data = snapshot.val();
+            const now = Date.now();
 
-
-        // 2. عملية تسجيل الدخول بكود التفعيل
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const code = document.getElementById('activationCode').value.trim();
-
-            if (code.length !== 9 || isNaN(code)) {
-                statusMessage.textContent = '❌ من فضلك أدخل كود تفعيل صحيح (9 أرقام).';
-                statusMessage.style.color = '#ff4f4f';
-                return;
+            if (!data) {
+                // الكود غير موجود في Firebase
+                statusMessage.textContent = '❌ الكود المحفوظ غير موجود. أدخل كود جديد.';
+                statusMessage.style.color = 'var(--error)';
+                showToast("❌ كود التفعيل المحفوظ غير موجود في قاعدة البيانات.", "error");
+                return { status: 'code_not_found' };
             }
-
-            submitBtn.disabled = true;
-            statusMessage.textContent = '⏳ جاري التحقق من الكود...';
-            statusMessage.style.color = '#ffb347';
-
-            // Check approvedStudents using the code as key
-            db.ref('approvedStudents/' + code).once('value', (snapshot) => {
-                const studentData = snapshot.val();
-                
-                if (studentData) {
-                    const storedDeviceId = studentData.deviceId;
-                    
-                    // Check expiry time
-                    if (studentData.expiry && studentData.expiry < Date.now()) {
-                        statusMessage.textContent = '🚫 كود التفعيل منتهي الصلاحية.';
-                        statusMessage.style.color = '#ff4f4f';
-                    } else if (!storedDeviceId) {
-                        // ✅ أول دخول للكود ده: نربطه بالجهاز الحالي ونعمل تفعيل
-                        db.ref('approvedStudents/' + code + '/deviceId').set(deviceUid)
-                          .then(() => {
-                              localStorage.setItem('approved', 'true');
-                              localStorage.setItem('activationCode', code);
-                              localStorage.setItem('localUid', deviceUid); // للتأكيد
-                              
-                              statusMessage.textContent = '✅ تم تفعيل الجهاز بنجاح. جاري التحويل...';
-                              statusMessage.style.color = '#00f5c4';
-                              setTimeout(() => { window.location.href = 'https://1383ss.vercel.app'; }, 1500);
-                          });
-                    } else if (storedDeviceId === deviceUid) {
-                        // ✅ الكود مرتبط بالفعل بالجهاز ده
-                        localStorage.setItem('approved', 'true');
-                        localStorage.setItem('activationCode', code);
-                        statusMessage.textContent = '✅ تم تسجيل الدخول بنجاح. جاري التحويل...';
-                        statusMessage.style.color = '#00f5c4';
-                        setTimeout(() => { window.location.href = 'https://1383ss.vercel.app'; }, 1500);
-                    } else {
-                        // 🚫 الكود مرتبط بجهاز آخر
-                        statusMessage.textContent = '🚫 الكود مرتبط بجهاز آخر. لا يمكن استخدامه هنا.';
-                        statusMessage.style.color = '#ff4f4f';
-                    }
-                } else {
-                    // الكود مش موجود
-                    statusMessage.textContent = '❌ كود التفعيل غير صحيح أو غير مُفعل.';
-                    statusMessage.style.color = '#ff4f4f';
-                }
-                submitBtn.disabled = false;
-            });
-        });
-
-
-        // 3. إرسال طلب التفعيل إلى pendingStudents
-        registrationForm.addEventListener('submit', (e) => {
-            e.preventDefault();
             
-            const name = document.getElementById('name').value.trim();
-            const phone = document.getElementById('phone').value.trim();
+            if (data.status === 'disabled') {
+                // الكود موقوف
+                statusMessage.textContent = '🚫 كودك موقوف. تواصل مع الإدارة.';
+                statusMessage.style.color = 'var(--error)';
+                showToast("🚫 كود التفعيل موقوف من قبل الإدارة.", "error");
+                return { status: 'disabled' };
+            }
 
-            if (!name || !phone) {
-                requestStatusMessage.textContent = '❌ من فضلك املأ جميع حقول طلب التفعيل.';
-                requestStatusMessage.style.color = '#ff4f4f';
+            if (data.expiry && data.expiry < now) {
+                // الكود منتهي الصلاحية
+                statusMessage.textContent = '⌛️ كودك منتهي الصلاحية. أدخل كود جديد.';
+                statusMessage.style.color = 'var(--error)';
+                showToast("⌛️ انتهت صلاحية كود التفعيل الخاص بك.", "error");
+                return { status: 'expired' };
+            }
+
+            // ✅ كل شيء تمام (الكود فعال)
+            statusMessage.textContent = '✅ كودك فعال! اضغط للدخول مباشرة.';
+            statusMessage.style.color = 'var(--success-color)';
+            
+            // عشان يوجهه للرئيسية لو ضغط على الرسالة دي
+            statusMessage.onclick = () => window.location.replace(MAIN_SITE_URL);
+
+            showToast("✅ كودك فعال ومحفوظ! سيتم توجيهك للرئيسية.", "success");
+            // 💡 هنا ممكن تعملي توجيه تلقائي بعد ثواني لو عايزة
+            // setTimeout(() => window.location.replace(MAIN_SITE_URL), 2000);
+
+            return { status: 'active', data: data };
+
+        } catch (error) {
+            // خطأ في الاتصال بالـ Firebase
+            statusMessage.textContent = '⚠️ فشل في الاتصال بالسيرفر. حاول إدخال الكود.';
+            statusMessage.style.color = 'var(--warning)';
+            showToast("⚠️ حدث خطأ أثناء الاتصال بالسيرفر. يرجى المحاولة لاحقاً.", "warning");
+            console.error("Firebase Check Error:", error);
+            return { status: 'server_error' };
+        }
+    }
+
+    // =======================================================
+    // 🚀 دالة تفعيل الكود (عند ضغط زر التفعيل)
+    // =======================================================
+    document.getElementById('activationForm').addEventListener('submit', activateCode);
+    
+    async function activateCode(e) {
+        e.preventDefault();
+        const codeInput = document.getElementById('code');
+        const activateBtn = document.getElementById('activateBtn');
+        const code = codeInput.value.trim();
+        
+        if (!code) {
+            statusMessage.textContent = '❌ من فضلك أدخل كود التفعيل.';
+            statusMessage.style.color = 'var(--error)';
+            return;
+        }
+
+        activateBtn.disabled = true;
+        statusMessage.textContent = '⏳ جاري التحقق من كود التفعيل...';
+        statusMessage.style.color = 'var(--warning)';
+
+        try {
+            const snapshot = await db.ref('approvedStudents/' + code).once('value');
+            const data = snapshot.val();
+            const now = Date.now();
+
+            if (!data) {
+                statusMessage.textContent = '❌ كود التفعيل غير صحيح.';
+                statusMessage.style.color = 'var(--error)';
+                showToast("❌ كود التفعيل غير صحيح أو غير موجود.", "error");
+                activateBtn.disabled = false;
+                return;
+            }
+            
+            if (data.status === 'disabled') {
+                statusMessage.textContent = '🚫 هذا الكود موقوف. تواصل مع الإدارة.';
+                statusMessage.style.color = 'var(--error)';
+                showToast("🚫 هذا الكود موقوف من قبل الإدارة.", "error");
+                activateBtn.disabled = false;
                 return;
             }
 
-            requestBtn.disabled = true;
-            requestStatusMessage.textContent = '⏳ جاري إرسال الطلب...';
-            requestStatusMessage.style.color = '#ffb347';
+            if (data.expiry && data.expiry < now) {
+                statusMessage.textContent = '⌛️ كود التفعيل منتهي الصلاحية.';
+                statusMessage.style.color = 'var(--error)';
+                showToast("⌛️ كود التفعيل منتهي الصلاحية.", "error");
+                activateBtn.disabled = false;
+                return;
+            }
+            
+            // ✅ الكود فعال: حفظ وتوجيه
+            localStorage.setItem('activationCode', code);
+            localStorage.setItem('approved', 'true');
+            
+            statusMessage.textContent = '✅ تم تفعيل الكود بنجاح! جاري التوجيه للرئيسية...';
+            statusMessage.style.color = 'var(--success-color)';
+            showToast("✅ تم تفعيل الكود بنجاح! أهلاً بك.", "success");
+            
+            // التوجيه لصفحة الموقع الأساسي
+            setTimeout(() => {
+                window.location.replace(MAIN_SITE_URL);
+            }, 1500);
 
-            // استخدام الـ UID بتاع الجهاز كـ Key لطلبات الانتظار
-            db.ref('pendingStudents/' + deviceUid).set({
-                name: name,
-                phone: phone,
-                deviceId: deviceUid,
-                requestDate: Date.now()
-            })
-            .then(() => {
-                requestStatusMessage.textContent = '✅ تم إرسال طلبك بنجاح. سنرسل لك كود التفعيل بعد مراجعة الإدارة.';
-                requestStatusMessage.style.color = '#00f5c4';
-            })
-            .catch(error => {
-                requestStatusMessage.textContent = '❌ فشل في إرسال الطلب: ' + error.message;
-                requestStatusMessage.style.color = '#ff4f4f';
-            })
-            .finally(() => {
-                requestBtn.disabled = false;
-            });
-        });
-    </script>
+        } catch (error) {
+            statusMessage.textContent = '❌ خطأ في الاتصال بالشبكة أو قاعدة البيانات.';
+            statusMessage.style.color = 'var(--error)';
+            showToast("❌ خطأ في الاتصال بالسيرفر. تأكد من اتصالك بالإنترنت.", "error");
+            console.error("Activation Error:", error);
+            activateBtn.disabled = false;
+        }
+    }
+    
+    // =======================================================
+    // ⚙️ التشغيل عند تحميل الصفحة
+    // =======================================================
+    window.onload = function() {
+        // التحقق الهادئ أول ما الصفحة تتفتح
+        checkCodeStatusOnLoad(); 
+
+        // منع زر الرجوع (Back Button)
+        window.history.pushState(null, null, window.location.href);
+        window.onpopstate = function() {
+            window.history.pushState(null, null, window.location.href);
+        };
+    };
+
+    // دالة التحميل (لزر التحميل في الأسفل)
+    function downloadAdminTest() {
+        const code = document.documentElement.outerHTML.replace(/<button onclick="downloadAdminTest\(\)" style="display:none;">تحميل كود activation\.html كامل<\/button>/g, '');
+        const blob = new Blob([code], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'activation_page.html'; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
 </body>
 </html>
