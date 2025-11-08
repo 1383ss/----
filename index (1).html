@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>تسجيل الدخول / تفعيل الجهاز</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script>
+        // 🚨 لازم تحط الـ Configuration بتاعت مشروعك هنا يا سو
+        const firebaseConfig = {
+          apiKey: "AIzaSyBK6FZF3LW83qaUHBKYTfiVd2Ozrd1Rf2g",
+          authDomain: "thanawy-1383.firebaseapp.com",
+          databaseURL: "https://thanawy-1383-default-rtdb.firebaseio.com",
+          projectId: "thanawy-1383",
+          storageBucket: "thanawy-1383.firebasestorage.app",
+          messagingSenderId: "1026664406457",
+          appId: "1:1026664406457:web:87d71f7e41bef36ba0aa68",
+          measurementId: "G-J5R2EFM2D0"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; background: #1a1a2e; color: #fff; text-align: center; padding: 20px; }
+        .container { max-width: 450px; margin: 50px auto; background: #22253f; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+        h1 { color: #00f5c4; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 8px; box-sizing: border-box; background: #333652; color: #fff; font-size: 16px; text-align: center; }
+        button { width: 100%; padding: 15px; background: #00f5c4; color: #1a1a2e; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        button:hover { background: #00c8a3; }
+        .status { margin-top: 15px; font-weight: 700; color: #ffb347; }
+        #uidDisplay { font-size: 14px; color: #a0a0b0; margin-bottom: 20px; word-break: break-all; }
+        .admin-link { display: block; margin-top: 30px; color: #ffb347; text-decoration: none; font-size: 14px; }
+        .divider { margin: 25px 0; border-bottom: 1px dashed #333652; padding-bottom: 10px; color: #a0a0b0; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 تسجيل الدخول بكود التفعيل</h1>
+        
+        <form id="loginForm">
+            <input type="text" id="activationCode" placeholder="أدخل كود التفعيل (9 أرقام)" pattern="[0-9]{9}" maxlength="9" required />
+            <button type="submit" id="submitBtn">تسجيل الدخول</button>
+            <div class="status" id="statusMessage"></div>
+        </form>
+
+        <div class="divider">أو</div>
+
+        <h2>✉️ طلب تفعيل جهاز جديد</h2>
+        <p id="uidDisplay">معرف جهازك: جارِ التحميل...</p>
+        <form id="registrationForm">
+            <input type="text" id="name" placeholder="الاسم ثلاثي" required />
+            <input type="tel" id="phone" placeholder="رقم الهاتف (للتواصل)" required />
+            <button type="submit" id="requestBtn">إرسال طلب التفعيل</button>
+            <div class="status" id="requestStatusMessage"></div>
+        </form>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const registrationForm = document.getElementById('registrationForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const requestBtn = document.getElementById('requestBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const requestStatusMessage = document.getElementById('requestStatusMessage');
+        const uidDisplay = document.getElementById('uidDisplay');
+
+        // 1. توليد أو جلب الـ UID
+        let deviceUid = localStorage.getItem('localUid');
+        if (!deviceUid) {
+            // توليد UID بسيط إذا لم يكن موجودًا
+            deviceUid = 'device-' + Date.now() + Math.floor(Math.random() * 999);
+            localStorage.setItem('localUid', deviceUid);
+        }
+        uidDisplay.textContent = 'معرف جهازك: ' + deviceUid;
+        
+        // لو الطالب معاه كود، بنحاول نتحقق منه فوراً عشان ندخله
+        const storedCode = localStorage.getItem('activationCode');
+        if (storedCode && localStorage.getItem('approved') === 'true') {
+             // إعادة توجيه سريعة إذا كان الكود موجود ومعتمد محليًا
+             window.location.href = 'https://1383ss.vercel.app';
+        }
+
+
+        // 2. عملية تسجيل الدخول بكود التفعيل
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('activationCode').value.trim();
+
+            if (code.length !== 9 || isNaN(code)) {
+                statusMessage.textContent = '❌ من فضلك أدخل كود تفعيل صحيح (9 أرقام).';
+                statusMessage.style.color = '#ff4f4f';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            statusMessage.textContent = '⏳ جاري التحقق من الكود...';
+            statusMessage.style.color = '#ffb347';
+
+            // Check approvedStudents using the code as key
+            db.ref('approvedStudents/' + code).once('value', (snapshot) => {
+                const studentData = snapshot.val();
+                
+                if (studentData) {
+                    const storedDeviceId = studentData.deviceId;
+                    
+                    // Check expiry time
+                    if (studentData.expiry && studentData.expiry < Date.now()) {
+                        statusMessage.textContent = '🚫 كود التفعيل منتهي الصلاحية.';
+                        statusMessage.style.color = '#ff4f4f';
+                    } else if (!storedDeviceId) {
+                        // ✅ أول دخول للكود ده: نربطه بالجهاز الحالي ونعمل تفعيل
+                        db.ref('approvedStudents/' + code + '/deviceId').set(deviceUid)
+                          .then(() => {
+                              localStorage.setItem('approved', 'true');
+                              localStorage.setItem('activationCode', code);
+                              localStorage.setItem('localUid', deviceUid); // للتأكيد
+                              
+                              statusMessage.textContent = '✅ تم تفعيل الجهاز بنجاح. جاري التحويل...';
+                              statusMessage.style.color = '#00f5c4';
+                              setTimeout(() => { window.location.href = 'https://1383ss.vercel.app'; }, 1500);
+                          });
+                    } else if (storedDeviceId === deviceUid) {
+                        // ✅ الكود مرتبط بالفعل بالجهاز ده
+                        localStorage.setItem('approved', 'true');
+                        localStorage.setItem('activationCode', code);
+                        statusMessage.textContent = '✅ تم تسجيل الدخول بنجاح. جاري التحويل...';
+                        statusMessage.style.color = '#00f5c4';
+                        setTimeout(() => { window.location.href = 'https://1383ss.vercel.app'; }, 1500);
+                    } else {
+                        // 🚫 الكود مرتبط بجهاز آخر
+                        statusMessage.textContent = '🚫 الكود مرتبط بجهاز آخر. لا يمكن استخدامه هنا.';
+                        statusMessage.style.color = '#ff4f4f';
+                    }
+                } else {
+                    // الكود مش موجود
+                    statusMessage.textContent = '❌ كود التفعيل غير صحيح أو غير مُفعل.';
+                    statusMessage.style.color = '#ff4f4f';
+                }
+                submitBtn.disabled = false;
+            });
+        });
+
+
+        // 3. إرسال طلب التفعيل إلى pendingStudents
+        registrationForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+
+            if (!name || !phone) {
+                requestStatusMessage.textContent = '❌ من فضلك املأ جميع حقول طلب التفعيل.';
+                requestStatusMessage.style.color = '#ff4f4f';
+                return;
+            }
+
+            requestBtn.disabled = true;
+            requestStatusMessage.textContent = '⏳ جاري إرسال الطلب...';
+            requestStatusMessage.style.color = '#ffb347';
+
+            // استخدام الـ UID بتاع الجهاز كـ Key لطلبات الانتظار
+            db.ref('pendingStudents/' + deviceUid).set({
+                name: name,
+                phone: phone,
+                deviceId: deviceUid,
+                requestDate: Date.now()
+            })
+            .then(() => {
+                requestStatusMessage.textContent = '✅ تم إرسال طلبك بنجاح. سنرسل لك كود التفعيل بعد مراجعة الإدارة.';
+                requestStatusMessage.style.color = '#00f5c4';
+            })
+            .catch(error => {
+                requestStatusMessage.textContent = '❌ فشل في إرسال الطلب: ' + error.message;
+                requestStatusMessage.style.color = '#ff4f4f';
+            })
+            .finally(() => {
+                requestBtn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
